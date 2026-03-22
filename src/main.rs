@@ -54,11 +54,9 @@ async fn main() {
         .with_state(state)
         .layer(CorsLayer::permissive()); // YENİ EKLENEN SATIR (CORS İZNİ)
 
-    // 6. Sunucumuzu 3000 portunda başlatıyoruz
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
-    println!("Sunucu 3000 portunda çalışıyor: http://127.0.0.1:3000");
+// 0.0.0.0 yaparak sunucuyu tüm internete açıyoruz
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    println!("Sunucu çalışıyor...");
 
     axum::serve(listener, app).await.unwrap();
 }
