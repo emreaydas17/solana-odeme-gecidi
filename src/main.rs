@@ -10,6 +10,7 @@ use sqlx::PgPool;
 use std::env;
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
+use regex::Regex;
 
 // Sunucumuzun ana durumu (State). Veritabanı bağlantımızı burada tutacağız.
 #[derive(Clone)]
@@ -85,21 +86,31 @@ async fn siparis_olustur(
     State(state): State<AppState>,
     Json(payload): Json<SiparisIstegi>,
 ) -> Json<SiparisYaniti> {
+    
+    // YENİ: E-posta formatını (Regex ile) kontrol ediyoruz
+    let email_regex = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
+    if !email_regex.is_match(&payload.email) {
+        return Json(SiparisYaniti {
+            mesaj: "Lütfen geçerli bir e-posta adresi formatı girin!".to_string(),
+            siparis_id: "".to_string(),
+        });
+    }
+
     // Benzersiz bir ID üretiyoruz
     let yeni_id = Uuid::new_v4().to_string();
 
     // Veritabanına kaydediyoruz
-    // Ünlem işaretini kaldırdık ve .bind() kullandık
-    let sonuc = sqlx::query("INSERT INTO siparisler (id, kullanici_email) VALUES ($1, $2)")
-        .bind(&yeni_id)
-        .bind(&payload.email)
-        .execute(&state.db)
-        .await;
+    let sonuc = sqlx::query(
+        "INSERT INTO siparisler (id, kullanici_email) VALUES ($1, $2)"
+    )
+    .bind(&yeni_id)
+    .bind(&payload.email)
+    .execute(&state.db)
+    .await;
 
     match sonuc {
         Ok(_) => Json(SiparisYaniti {
-            mesaj: "Sipariş başarıyla oluşturuldu. Lütfen 1 USDC/USDT gönderip TxID'yi girin."
-                .to_string(),
+            mesaj: "Sipariş oluşturuldu. Lütfen 1 USDC veya 1 USDT gönderip TxID'yi girin.".to_string(), // GÜNCELLENDİ
             siparis_id: yeni_id,
         }),
         Err(e) => {
