@@ -206,8 +206,8 @@ async fn odeme_dogrula(
                         // Farkı hesapla
                         let bakiye_farki = post_amount - pre_amount;
 
-                        // Tam olarak 1 USDC/USDT gelmiş mi?
-                        if bakiye_farki >= 0.99 && bakiye_farki <= 1.01 {
+                        // YENİ MANTIK: 1 USDC/USDT veya DAHA FAZLASI gelmiş mi? (Esnek Kural)
+                        if bakiye_farki >= 0.99 {
                             odeme_gecerli = true;
                             break;
                         }
@@ -227,7 +227,7 @@ async fn odeme_dogrula(
 
                 match guncelleme {
                     Ok(Some(_)) => return Json(DogrulamaYaniti {
-                        mesaj: "Ödeme 1 USDC/USDT olarak doğrulandı! Lisans: RUST-2026-XWZ".to_string(),
+                        mesaj: "Ödeme başarıyla doğrulandı! Lisans: RUST-2026-XWZ".to_string(),
                         durum: "basarili".to_string(),
                     }),
                     _ => return Json(DogrulamaYaniti {
@@ -237,7 +237,7 @@ async fn odeme_dogrula(
                 }
             } else {
                 return Json(DogrulamaYaniti {
-                    mesaj: "İşlem bulundu ancak: Alıcı yanlış, Token geçersiz veya Tutar 1 değil!".to_string(),
+                    mesaj: "İşlem bulundu ancak: Alıcı yanlış, Token geçersiz veya Tutar 1'den az!".to_string(),
                     durum: "hata".to_string(),
                 });
             }
