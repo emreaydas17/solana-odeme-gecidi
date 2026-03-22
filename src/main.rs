@@ -136,7 +136,7 @@ async fn odeme_dogrula(
     // ------------------------------------------------------------------------
 
     // DİKKAT: BURAYA KENDİ SOLANA DEVNET CÜZDAN ADRESİNİ YAZMALISIN!
-    let magaza_cuzdani = "Ek2...Senin_Solana_Cuzdan_Adresin_Buraya...3xZ"; 
+    let magaza_cuzdani = "CY8YX95HbX1WZNe1YYNWjRuYkb1pCr1e6zcxgbFTeKho"; 
     
     let usdc_mint = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"; 
     let usdt_mint = "EJwZgeZrdC8TXTQbQBoL6bfuAnFUUy1PVCMB4DYPzVaS";
