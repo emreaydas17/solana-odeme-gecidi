@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS siparisler (
+    id VARCHAR(50) PRIMARY KEY,
+    kullanici_email VARCHAR(255) NOT NULL,
+    tx_id VARCHAR(255),
+    durum VARCHAR(50) NOT NULL DEFAULT 'bekliyor',
+    olusturulma_tarihi TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
