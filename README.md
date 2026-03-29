@@ -62,3 +62,11 @@ Sıradan ödeme sistemlerinin aksine, bu altyapı blockchain üzerindeki veriler
 3. Kullanıcı belirtilen cüzdana en az 1 USDC/USDT gönderip TxID'yi sisteme girer.
 4. Sunucu, Solana RPC'ye bağlanır; alıcı cüzdanı, token türünü, bakiye farkını ve DB geçmişini (Replay Attack) kontrol eder.
 5. Tüm güvenlik duvarları aşılırsa ürün (lisans kodu) anında ekranda teslim edilir.
+
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/0a59c641-bb67-4b7b-870f-1156ae379013" controls="controls" style="max-width: 70%; height: auto;">
+    Tarayıcınız video etiketini desteklemiyor.
+  </video>
+</p>
+
+<br>
