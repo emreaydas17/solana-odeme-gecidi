@@ -1,7 +1,7 @@
 use axum::{
+    Json, Router,
     extract::State,
     routing::{get, post},
-    Json, Router,
 };
 use dotenvy::dotenv;
 use regex::Regex;
@@ -21,13 +21,18 @@ struct AppState {
 async fn main() {
     dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL .env dosyasında bulunamadı!");
-    
+
     println!("Veritabanına bağlanılıyor...");
-    let pool = PgPool::connect(&db_url).await.expect("Veritabanına bağlanırken hata oluştu!");
+    let pool = PgPool::connect(&db_url)
+        .await
+        .expect("Veritabanına bağlanırken hata oluştu!");
     println!("Veritabanı bağlantısı başarılı!");
 
     let schema = include_str!("../schema.sql");
-    sqlx::query(schema).execute(&pool).await.expect("Tablo oluşturulurken hata meydana geldi!");
+    sqlx::query(schema)
+        .execute(&pool)
+        .await
+        .expect("Tablo oluşturulurken hata meydana geldi!");
     println!("Veritabanı tablosu hazır!");
 
     let state = AppState { db: pool };
@@ -41,7 +46,7 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     println!("Sunucu 3000 portunda çalışıyor...");
-    
+
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -68,7 +73,6 @@ async fn siparis_olustur(
     State(state): State<AppState>,
     Json(payload): Json<SiparisIstegi>,
 ) -> Json<SiparisYaniti> {
-    
     let email_regex = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
     if !email_regex.is_match(&payload.email) {
         return Json(SiparisYaniti {
@@ -79,29 +83,26 @@ async fn siparis_olustur(
 
     let yeni_id = Uuid::new_v4().to_string();
 
-    let sonuc = sqlx::query(
-        "INSERT INTO siparisler (id, kullanici_email) VALUES ($1, $2)"
-    )
-    .bind(&yeni_id)
-    .bind(&payload.email)
-    .execute(&state.db)
-    .await;
+    let sonuc = sqlx::query("INSERT INTO siparisler (id, kullanici_email) VALUES ($1, $2)")
+        .bind(&yeni_id)
+        .bind(&payload.email)
+        .execute(&state.db)
+        .await;
 
     match sonuc {
         Ok(_) => Json(SiparisYaniti {
-            mesaj: "Sipariş oluşturuldu. Lütfen 1 USDC veya 1 USDT gönderip TxID'yi girin.".to_string(),
+            mesaj: "Sipariş oluşturuldu. Lütfen 1 USDC veya 1 USDT gönderip TxID'yi girin."
+                .to_string(),
             siparis_id: yeni_id,
         }),
         Err(_) => Json(SiparisYaniti {
             mesaj: "Sipariş oluşturulurken sistemsel bir hata oluştu.".to_string(),
             siparis_id: "".to_string(),
-        })
+        }),
     }
 }
 
-// ==========================================
-// 2. ÖDEME DOĞRULAMA (SOLANA AĞI - DERİN GÜVENLİK)
-// ==========================================
+// 2. ÖDEME DOĞRULAMA
 
 #[derive(Deserialize)]
 struct DogrulamaIstegi {
@@ -119,7 +120,6 @@ async fn odeme_dogrula(
     State(state): State<AppState>,
     Json(payload): Json<DogrulamaIstegi>,
 ) -> Json<DogrulamaYaniti> {
-    
     // --- 1. YENİ GÜVENLİK DUVARI: REPLAY ATTACK (ÇİFTE HARCAMA) KONTROLÜ ---
     let tx_kontrol = sqlx::query("SELECT id FROM siparisler WHERE tx_id = $1")
         .bind(&payload.tx_id)
@@ -133,17 +133,16 @@ async fn odeme_dogrula(
             durum: "hata".to_string(),
         });
     }
-    // ------------------------------------------------------------------------
 
-    // DİKKAT: BURAYA KENDİ SOLANA DEVNET CÜZDAN ADRESİNİ YAZMALISIN!
-    let magaza_cuzdani = "CY8YX95HbX1WZNe1YYNWjRuYkb1pCr1e6zcxgbFTeKho"; 
-    
-    let usdc_mint = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"; 
+    // SOLANA DEVNET CÜZDAN ADRESİ
+    let magaza_cuzdani = "CY8YX95HbX1WZNe1YYNWjRuYkb1pCr1e6zcxgbFTeKho";
+
+    let usdc_mint = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
     let usdt_mint = "EJwZgeZrdC8TXTQbQBoL6bfuAnFUUy1PVCMB4DYPzVaS";
 
     let rpc_url = "https://api.devnet.solana.com";
     let client = reqwest::Client::new();
-    
+
     let request_body = serde_json::json!({
         "jsonrpc": "2.0",
         "id": 1,
@@ -158,10 +157,10 @@ async fn odeme_dogrula(
 
     if let Ok(response) = res {
         let json_data: Value = response.json().await.unwrap_or_default();
-        
+
         if !json_data["result"].is_null() {
             let meta = &json_data["result"]["meta"];
-            
+
             if !meta["err"].is_null() {
                 return Json(DogrulamaYaniti {
                     mesaj: "Bu işlem Solana ağında başarısız olmuş (Failed).".to_string(),
@@ -184,7 +183,8 @@ async fn odeme_dogrula(
                         let mut pre_amount = 0.0;
                         for pr in pre {
                             if pr["accountIndex"].as_u64().unwrap_or(999) == account_index {
-                                pre_amount = pr["uiTokenAmount"]["uiAmount"].as_f64().unwrap_or(0.0);
+                                pre_amount =
+                                    pr["uiTokenAmount"]["uiAmount"].as_f64().unwrap_or(0.0);
                                 break;
                             }
                         }
@@ -201,7 +201,7 @@ async fn odeme_dogrula(
 
             if odeme_gecerli {
                 let guncelleme = sqlx::query(
-                    "UPDATE siparisler SET tx_id = $1, durum = 'odendi' WHERE id = $2 RETURNING id"
+                    "UPDATE siparisler SET tx_id = $1, durum = 'odendi' WHERE id = $2 RETURNING id",
                 )
                 .bind(&payload.tx_id)
                 .bind(&payload.siparis_id)
@@ -209,18 +209,23 @@ async fn odeme_dogrula(
                 .await;
 
                 match guncelleme {
-                    Ok(Some(_)) => return Json(DogrulamaYaniti {
-                        mesaj: "Ödeme başarıyla doğrulandı! Lisans: RUST-2026-XWZ".to_string(),
-                        durum: "basarili".to_string(),
-                    }),
-                    _ => return Json(DogrulamaYaniti {
-                        mesaj: "Sipariş bulunamadı veya sistem hatası.".to_string(),
-                        durum: "hata".to_string(),
-                    }),
+                    Ok(Some(_)) => {
+                        return Json(DogrulamaYaniti {
+                            mesaj: "Ödeme başarıyla doğrulandı! Lisans: RUST-2026-XWZ".to_string(),
+                            durum: "basarili".to_string(),
+                        });
+                    }
+                    _ => {
+                        return Json(DogrulamaYaniti {
+                            mesaj: "Sipariş bulunamadı veya sistem hatası.".to_string(),
+                            durum: "hata".to_string(),
+                        });
+                    }
                 }
             } else {
                 return Json(DogrulamaYaniti {
-                    mesaj: "İşlem bulundu ancak: Alıcı yanlış, Token geçersiz veya Tutar 1'den az!".to_string(),
+                    mesaj: "İşlem bulundu ancak: Alıcı yanlış, Token geçersiz veya Tutar 1'den az!"
+                        .to_string(),
                     durum: "hata".to_string(),
                 });
             }
